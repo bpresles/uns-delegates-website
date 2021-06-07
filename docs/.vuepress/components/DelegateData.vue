@@ -1,7 +1,10 @@
 <template>
   <div class="card-container">
     <div v-for="delegate in delegates">
-      <a :href="`/delegates/${delegate.unikid}`" class="card">
+      <a
+        :href="`/delegates/${delegate.unikid}`"
+        :class="`card card-${delegate.status}`"
+      >
         <div class="card-header">
           <img
             v-if="delegate.notCompleted"
@@ -26,18 +29,21 @@
 
         <div v-if="!delegate.notCompleted" class="socials">
           <a
+            class="nobr"
             v-if="delegate.twitter"
             target="_blank"
             :href="`https://twitter.com/${delegate.twitter}`"
             ><i class="fa fa-twitter" />twitter</a
           >
           <a
+            class="nobr"
             v-if="delegate.email"
             target="_blank"
             :href="`mailto:${delegate.email}`"
             ><i class="fa fa-envelope" />email</a
           >
           <a
+            class="nobr"
             v-if="delegate.forum"
             target="_blank"
             :href="`https://forum.unikname.com/u/${delegate.forum}/summary`"
@@ -45,12 +51,17 @@
             <i class="fa fa-globe" />forum</a
           >
           <a
+            class="nobr"
             v-if="delegate.github"
             target="_blank"
             :href="`https://github.com/${delegate.github}`"
             ><i class="fa fa-github" />github</a
           >
-          <a v-if="delegate.website" target="_blank" :href="delegate.website"
+          <a
+            v-if="delegate.website"
+            class="nobr"
+            target="_blank"
+            :href="delegate.website"
             ><i class="fa fa-globe" />website</a
           >
         </div>
@@ -73,10 +84,11 @@
               class="elected"
               alt="status"
             />
-            <div>
-              status:<span :class="`status-${delegate.isLive}`">{{
-                delegate.isLive
-              }}</span>
+            <div v-if="delegate.notActive" class="not-active">
+              <p>
+                slowing down the network since
+                {{ delegate.notActive }}
+              </p>
             </div>
           </span>
           <span v-else
@@ -125,10 +137,28 @@ export default {
       delegate.rank = data.rank;
       delegate.votes = data.production.approval;
       if (delegate.forger) {
-        delegate.isLive =
-          (Date.now() - data.blocks.last.timestamp.unix * 1000) / 1000 < 600
-            ? "active"
-            : "not active";
+        // has not forged for more than 10 minutes
+        if (
+          (Date.now() - data.blocks.last.timestamp.unix * 1000) / 1000 >
+          60 * 10
+        ) {
+          delegate.status = "not-forging";
+          const seconds =
+            (Date.now() - data.blocks.last.timestamp.unix * 1000) / 1000;
+          if (seconds / 3600 / 24 > 1) {
+            delegate.notActive = `${(seconds / 3600 / 24).toFixed(0)} days`;
+          } else if (seconds / 3600 > 1) {
+            delegate.notActive = `${(seconds / 3600).toFixed(0)} hours`;
+          } else {
+            delegate.notActive = `${(seconds / 60).toFixed(0)} minutes`;
+          }
+        } else {
+          delegate.status = "forging";
+          delegate.notActive = false;
+        }
+      } else {
+        delegate.status = "not-elected";
+        delegate.notActive = false;
       }
     });
     this.loading = false;
@@ -151,81 +181,90 @@ export default {
     -ms-flex-direction row
     flex-direction row
     justify-content center
-.card
-    height 18.5em
-    width 17em
-    min-width 17em
-    display -webkit-box
-    display -ms-flexbox
-    display flex
-    -webkit-box-orient vertical
-    -webkit-box-direction normal
-    -ms-flex-direction column
-    flex-direction column
-    position relative
-    -webkit-transition all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1)
-    -o-transition all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1)
-    transition all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1)
-    border-radius 16px
-    overflow hidden
-    text-align center
-    margin 0px 10px 10px 0px
-    background-color #EFF6F6
-  .card-header
-        img
-            padding-top: 10px
-            height: 100px
-            width: 100px
-  .unikid
-        padding-left: 10px
-        padding-right 10px
-        font-size 0.9rem
-        margin-bottom: 10px
-        h3
-            color: black
-            margin-top: 7px
-            margin-bottom: 10px
-        .unik-badge
-            padding: 0.4em 1em
-            border-radius: 20px
-            color: #fff
-            align-items: center
-            .individualLogo
-                background: url('~@assets/logo-individual.png')
-                background-repeat: no-repeat
-                height: 17px
-                width: 17px
-                background-size: cover
-                display: inline-block
-        .unik-badge.unik-badge-individual
-            background-color: #c6c6ff
-        .unik-badge.unik-badge-organization
-            background-color: #6263b1
-        .unik-badge.unik-badge-network
-            background-color: #16c8c0
-  .resigned
-        color: red
-  .description
-        color #000
-        font-weight 400
-        margin-top 10px
-        .elected
-            height: 15px
-            width: 15px
-        .status-active
-            margin-left: 5px
-            color: green
-        .status-not.active
-            margin-left: 5px
-            color: red
-        p
-            margin: 1px
-            font-size: 1rem
-  .socials
-        i
-            padding-right: 6px
-        a
-            padding: 6px
+  .card-forging
+      background-color #EFF6F6!important
+  .card-not-forging
+      background-color #ff8c72!important
+  .card-not-elected
+      background-color #b5cbef!important
+  .card
+      height 19em
+      width 17em
+      min-width 17em
+      display -webkit-box
+      display -ms-flexbox
+      display flex
+      -webkit-box-orient vertical
+      -webkit-box-direction normal
+      -ms-flex-direction column
+      flex-direction column
+      position relative
+      -webkit-transition all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1)
+      -o-transition all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1)
+      transition all 0.4s cubic-bezier(0.645, 0.045, 0.355, 1)
+      border-radius 16px
+      overflow hidden
+      text-align center
+      margin 0px 10px 10px 0px
+      background-color #EFF6F6
+    .card-header
+          img
+              padding-top: 10px
+              height: 100px
+              width: 100px
+    .unikid
+          padding-left: 10px
+          padding-right 10px
+          font-size 0.9rem
+          margin-bottom: 10px
+          h3
+              color: black
+              margin-top: 7px
+              margin-bottom: 10px
+          .unik-badge
+              padding: 0.4em 1em
+              border-radius: 20px
+              color: #fff
+              align-items: center
+              .individualLogo
+                  background: url('~@assets/logo-individual.png')
+                  background-repeat: no-repeat
+                  height: 17px
+                  width: 17px
+                  background-size: cover
+                  display: inline-block
+          .unik-badge.unik-badge-individual
+              background-color: #c6c6ff
+          .unik-badge.unik-badge-organization
+              background-color: #6263b1
+          .unik-badge.unik-badge-network
+              background-color: #16c8c0
+    .resigned
+          color: red
+    .description
+          color #000
+          font-weight 400
+          margin-top 10px
+          .elected
+              height: 15px
+              width: 15px
+          p
+              margin: 1px
+              font-size: 1rem
+          .not-active
+              p
+                padding-left: 5px
+                padding-right: 5px
+                margin-top: 10px
+                line-height: 1
+                font-size: 1.1rem
+    .socials
+          i
+              padding-right: 6px
+          a
+              padding: 6px
+          .nobr
+              white-space: nowrap
 
 /* https://codesandbox.io/s/skeleton-placeholder-forked-9i8f7?file=/index.html:1365-1392 */
 .placeholder
